@@ -8,33 +8,40 @@
 import SwiftUI
 import AppKit
 
-struct HandCursorOnHover: ViewModifier {
+func appIcon(for source: AudioSource) -> NSImage? {
+    guard let bundleID = source.bundleIdentifier,
+          let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+    else {
+        return nil
+    }
+
+    return NSWorkspace.shared.icon(forFile: appURL.path)
+}
+
+struct ContextCursorOnHover: ViewModifier {
     let isEnabled: Bool
-    @State private var isHovering = false
 
     func body(content: Content) -> some View {
         content
-            .onHover { hovering in
-                isHovering = hovering
-                updateCursor()
-            }
-            .onChange(of: isEnabled) { _, _ in
-                updateCursor()
-            }
-    }
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(_):
+                    if isEnabled {
+                        NSCursor.pointingHand.set()
+                    } else {
+                        NSCursor.operationNotAllowed.set()
+                    }
 
-    private func updateCursor() {
-        if isHovering && isEnabled {
-            NSCursor.pointingHand.set()
-        } else {
-            NSCursor.arrow.set()
-        }
+                case .ended:
+                    NSCursor.arrow.set()
+                }
+            }
     }
 }
 
 extension View {
-    func handCursorOnHover(enabled: Bool = true) -> some View {
-        modifier(HandCursorOnHover(isEnabled: enabled))
+    func contextCursorOnHover(enabled: Bool) -> some View {
+        modifier(ContextCursorOnHover(isEnabled: enabled))
     }
 }
 
@@ -56,6 +63,32 @@ private struct SmoothProgressBar: View {
             }
         }
         .frame(height: 8)
+    }
+}
+
+private struct HoverUnderlineLink: View {
+    let title: String
+    let destination: URL
+    let color: Color
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Link(destination: destination) {
+            Text(title)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(color)
+                .underline(isHovering)
+        }
+        .contextCursorOnHover(enabled: true)
+        .onContinuousHover { phase in
+            switch phase {
+            case .active(_):
+                isHovering = true
+            case .ended:
+                isHovering = false
+            }
+        }
     }
 }
 
@@ -101,12 +134,32 @@ struct AnalyzerView: View {
                         Divider()
 
                         ForEach(viewModel.availableSources, id: \.self) { source in
-                            Button(source.appName) {
+                            Button {
                                 viewModel.selectedSource = source
+                            } label: {
+                                HStack(spacing: 8) {
+                                    if let icon = appIcon(for: source) {
+                                        Image(nsImage: icon)
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 16, height: 16)
+                                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    }
+
+                                    Text(source.appName)
+                                }
                             }
                         }
                     } label: {
                         HStack(spacing: 8) {
+                            if let icon = viewModel.selectedSource.flatMap({ appIcon(for: $0) }) {
+                                Image(nsImage: icon)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 16, height: 16)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                            }
+
                             Text(viewModel.selectedSource?.appName ?? "Select an app")
                                 .foregroundStyle(
                                     viewModel.selectedSource == nil
@@ -129,8 +182,16 @@ struct AnalyzerView: View {
                     .menuStyle(.borderlessButton)
                     .buttonStyle(.plain)
                     .menuIndicator(.hidden)
-                    .handCursorOnHover(enabled: !viewModel.isRecording)
+                    .contextCursorOnHover(enabled: !viewModel.isRecording)
                     .allowsHitTesting(!viewModel.isRecording)
+                    .overlay {
+                        if viewModel.isRecording {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.clear)
+                                .contentShape(RoundedRectangle(cornerRadius: 10))
+                                .contextCursorOnHover(enabled: false)
+                        }
+                    }
                 }
 
                 if let warning = viewModel.sourceWarning {
@@ -166,7 +227,7 @@ struct AnalyzerView: View {
                         foreground: .white
                     ))
                     .disabled(viewModel.isRecording)
-                    .handCursorOnHover(enabled: !viewModel.isRecording)
+                    .contextCursorOnHover(enabled: !viewModel.isRecording)
 
                     Button("Cancel") {
                         viewModel.cancelAnalysis()
@@ -177,7 +238,7 @@ struct AnalyzerView: View {
                     ))
                     .disabled(!viewModel.isRecording)
                     .opacity(viewModel.isRecording ? 1 : 0.65)
-                    .handCursorOnHover(enabled: viewModel.isRecording)
+                    .contextCursorOnHover(enabled: viewModel.isRecording)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -209,11 +270,13 @@ struct AnalyzerView: View {
             }
             .padding(16)
 
-            Link("placeholder link", destination: URL(string: "https://example.com")!)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(mutedTextColor)
-                .padding(.trailing, 12)
-                .padding(.bottom, 10)
+            HoverUnderlineLink(
+                title: "placeholder link",
+                destination: URL(string: "https://example.com")!,
+                color: mutedTextColor
+            )
+            .padding(.trailing, 12)
+            .padding(.bottom, 10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(
@@ -284,13 +347,19 @@ private struct FilledButtonStyle: ButtonStyle {
     let background: Color
     let foreground: Color
 
+    @Environment(\.isEnabled) private var isEnabled
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 14, weight: .semibold))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
-            .background(background.opacity(configuration.isPressed ? 0.9 : 1.0))
+            .background(
+                background
+                    .opacity(configuration.isPressed ? 0.9 : 1.0)
+            )
             .foregroundStyle(foreground)
             .clipShape(RoundedRectangle(cornerRadius: 10))
+            .opacity(isEnabled ? 1.0 : 0.5)
     }
 }
