@@ -110,7 +110,7 @@ struct AnalyzerView: View {
         ZStack(alignment: .bottomTrailing) {
             VStack(alignment: .leading, spacing: 16) {
 
-                Text("Choose the app you want to analyze, then play audio from that app and press Analyze. Let it play for 30 seconds for the best result.")
+                Text("Please play music as you would normally. While the music is playing, select the corresponding app from the dropdown (e.g., Spotify), and press \"Analyze\". Allow music to play for 30 seconds to avoid incomplete results.")
                     .font(.system(size: 14))
                     .foregroundStyle(bodyTextColor.opacity(0.72))
                     .multilineTextAlignment(.center)
