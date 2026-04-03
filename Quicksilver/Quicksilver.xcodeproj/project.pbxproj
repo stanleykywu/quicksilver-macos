@@ -30,14 +30,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		953594C22F7DAAB4009714C9 /* Exceptions for "QuicksilverUITests" folder in "Quicksilver" target */ = {
+		9544ACBE2F7EDA0C008E86C9 /* Exceptions for "QuicksilverUITests" folder in "Quicksilver" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				libquicksilver.a,
 			);
 			target = 9589EE272F7CAF55006708D8 /* Quicksilver */;
 		};
-		953594C32F7DAAB4009714C9 /* Exceptions for "QuicksilverUITests" folder in "QuicksilverUITests" target */ = {
+		9544ACBF2F7EDA0C008E86C9 /* Exceptions for "QuicksilverUITests" folder in "QuicksilverUITests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				libquicksilver.a,
@@ -70,8 +70,8 @@
 		9589EE422F7CAF56006708D8 /* QuicksilverUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				953594C22F7DAAB4009714C9 /* Exceptions for "QuicksilverUITests" folder in "Quicksilver" target */,
-				953594C32F7DAAB4009714C9 /* Exceptions for "QuicksilverUITests" folder in "QuicksilverUITests" target */,
+				9544ACBE2F7EDA0C008E86C9 /* Exceptions for "QuicksilverUITests" folder in "Quicksilver" target */,
+				9544ACBF2F7EDA0C008E86C9 /* Exceptions for "QuicksilverUITests" folder in "QuicksilverUITests" target */,
 			);
 			path = QuicksilverUITests;
 			sourceTree = "<group>";

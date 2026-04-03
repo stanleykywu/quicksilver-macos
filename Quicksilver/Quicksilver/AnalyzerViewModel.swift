@@ -13,8 +13,7 @@ struct DetectionResult: Identifiable, Equatable {
     let id = UUID()
     let verdict: String
     let title: String
-    let subtitle: String
-    let probabilityText: String
+    let probabilityText: String?
     let warning: String?
     let isLikely: Bool
 }
@@ -28,7 +27,10 @@ enum AnalyzerState: Equatable {
 }
 
 protocol CaptureService {
+    func availableAudioSources() async throws -> [AudioSource]
+
     func startCapture(
+        from source: AudioSource,
         duration: TimeInterval,
         onTick: @escaping (_ remaining: TimeInterval, _ progress: Double) -> Void,
         onComplete: @escaping (Result<[DetectionResult], Error>) -> Void
@@ -44,6 +46,10 @@ final class AnalyzerViewModel: ObservableObject {
     @Published var progress: Double = 0
     @Published var results: [DetectionResult] = []
 
+    @Published var availableSources: [AudioSource] = []
+    @Published var selectedSource: AudioSource?
+    @Published var sourceWarning: String?
+
     private let captureService: CaptureService
 
     init(captureService: CaptureService) {
@@ -56,8 +62,35 @@ final class AnalyzerViewModel: ObservableObject {
         return false
     }
 
+    func loadSources() {
+        Task { @MainActor in
+            do {
+                let sources = try await captureService.availableAudioSources()
+                self.availableSources = sources
+
+                if let selectedSource,
+                   sources.contains(selectedSource) == false {
+                    self.selectedSource = nil
+                }
+
+                self.sourceWarning = nil
+            } catch {
+                self.availableSources = []
+                self.selectedSource = nil
+                self.sourceWarning = error.localizedDescription
+            }
+        }
+    }
+
     func startAnalysis() {
         guard !isRecording else { return }
+
+        sourceWarning = nil
+
+        guard let selectedSource else {
+            sourceWarning = "Pick one app before starting analysis."
+            return
+        }
 
         state = .recording
         remainingSeconds = 30
@@ -65,6 +98,7 @@ final class AnalyzerViewModel: ObservableObject {
         results = []
 
         captureService.startCapture(
+            from: selectedSource,
             duration: 30,
             onTick: { [weak self] remaining, progress in
                 Task { @MainActor in
