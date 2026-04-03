@@ -6,6 +6,58 @@
 //
 
 import SwiftUI
+import AppKit
+
+struct HandCursorOnHover: ViewModifier {
+    let isEnabled: Bool
+    @State private var isHovering = false
+
+    func body(content: Content) -> some View {
+        content
+            .onHover { hovering in
+                isHovering = hovering
+                updateCursor()
+            }
+            .onChange(of: isEnabled) { _, _ in
+                updateCursor()
+            }
+    }
+
+    private func updateCursor() {
+        if isHovering && isEnabled {
+            NSCursor.pointingHand.set()
+        } else {
+            NSCursor.arrow.set()
+        }
+    }
+}
+
+extension View {
+    func handCursorOnHover(enabled: Bool = true) -> some View {
+        modifier(HandCursorOnHover(isEnabled: enabled))
+    }
+}
+
+private struct SmoothProgressBar: View {
+    let progress: Double
+    let fillColor: Color
+
+    var body: some View {
+        GeometryReader { geometry in
+            let clampedProgress = min(max(progress, 0), 1)
+
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(fillColor.opacity(0.18))
+
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(fillColor)
+                    .frame(width: geometry.size.width * clampedProgress)
+            }
+        }
+        .frame(height: 8)
+    }
+}
 
 struct AnalyzerView: View {
     @ObservedObject var viewModel: AnalyzerViewModel
@@ -76,6 +128,8 @@ struct AnalyzerView: View {
                     }
                     .menuStyle(.borderlessButton)
                     .buttonStyle(.plain)
+                    .menuIndicator(.hidden)
+                    .handCursorOnHover(enabled: !viewModel.isRecording)
                     .allowsHitTesting(!viewModel.isRecording)
                 }
 
@@ -94,9 +148,7 @@ struct AnalyzerView: View {
 
                 if viewModel.isRecording {
                     VStack(spacing: 10) {
-                        ProgressView(value: viewModel.progress)
-                            .progressViewStyle(.linear)
-                            .tint(primaryButtonColor)
+                        SmoothProgressBar(progress: viewModel.progress, fillColor: primaryButtonColor)
 
                         Text(viewModel.timerText())
                             .font(.system(size: 32, weight: .bold))
@@ -114,6 +166,7 @@ struct AnalyzerView: View {
                         foreground: .white
                     ))
                     .disabled(viewModel.isRecording)
+                    .handCursorOnHover(enabled: !viewModel.isRecording)
 
                     Button("Cancel") {
                         viewModel.cancelAnalysis()
@@ -124,6 +177,7 @@ struct AnalyzerView: View {
                     ))
                     .disabled(!viewModel.isRecording)
                     .opacity(viewModel.isRecording ? 1 : 0.65)
+                    .handCursorOnHover(enabled: viewModel.isRecording)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
