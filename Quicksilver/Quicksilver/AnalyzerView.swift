@@ -107,7 +107,7 @@ struct AnalyzerView: View {
     private let warningText = Color(red: 146/255, green: 64/255, blue: 14/255)
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
+        ZStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 16) {
 
                 Text("Please play music as you would normally. While the music is playing, select the corresponding app from the dropdown (e.g., Spotify), and press \"Analyze\". Allow music to play for 30 seconds to avoid incomplete results.")
@@ -115,6 +115,7 @@ struct AnalyzerView: View {
                     .foregroundStyle(bodyTextColor.opacity(0.72))
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -270,12 +271,31 @@ struct AnalyzerView: View {
             }
             .padding(16)
 
-            HoverUnderlineLink(
-                title: "placeholder link",
-                destination: URL(string: "https://example.com")!,
-                color: mutedTextColor
-            )
-            .padding(.trailing, 12)
+            HStack {
+                Button {
+                    viewModel.quitApp()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "power")
+                            .font(.system(size: 13, weight: .semibold))
+
+                        Text("Quit")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundStyle(mutedTextColor)
+                }
+                .buttonStyle(.plain)
+                .contextCursorOnHover(enabled: true)
+
+                Spacer()
+
+                HoverUnderlineLink(
+                    title: "placeholder link",
+                    destination: URL(string: "https://example.com")!,
+                    color: mutedTextColor
+                )
+            }
+            .padding(.horizontal, 12)
             .padding(.bottom, 10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import AppKit
 
 struct DetectionResult: Identifiable, Equatable {
     let id = UUID()
@@ -130,6 +131,11 @@ final class AnalyzerViewModel: ObservableObject {
         progress = 0
     }
 
+    func quitApp() {
+        captureService.cancelCapture()
+        NSApplication.shared.terminate(nil)
+    }
+    
     func timerText() -> String {
         let seconds = max(0, remainingSeconds)
         return String(format: "00:%02d", seconds)
