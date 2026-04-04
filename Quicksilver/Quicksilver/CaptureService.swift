@@ -171,7 +171,7 @@ final class SystemAudioCaptureService: NSObject, CaptureService {
         let configuration = SCStreamConfiguration()
         configuration.capturesAudio = true
         configuration.excludesCurrentProcessAudio = true
-        configuration.sampleRate = 48_000
+        configuration.sampleRate = 44_100
         configuration.channelCount = 2
 
         let stream = SCStream(filter: filter, configuration: configuration, delegate: nil)
@@ -184,9 +184,9 @@ final class SystemAudioCaptureService: NSObject, CaptureService {
                 self.latestSampleRate = pcmBuffer.format.sampleRate
                 self.totalSampleFrames += Int(pcmBuffer.frameLength)
 
-                let monoSamples = Self.extractMonoSamples(from: pcmBuffer)
-                if !monoSamples.isEmpty {
-                    self.capturedSamples.append(contentsOf: monoSamples)
+                let stereoSamples = Self.extractInterleavedStereoSamples(from: pcmBuffer)
+                if !stereoSamples.isEmpty {
+                    self.capturedSamples.append(contentsOf: stereoSamples)
                 }
             }
         }
@@ -319,31 +319,27 @@ final class SystemAudioCaptureService: NSObject, CaptureService {
         completion?(result)
     }
 
-    private static func extractMonoSamples(from pcmBuffer: AVAudioPCMBuffer) -> [Float] {
+    private static func extractInterleavedStereoSamples(from pcmBuffer: AVAudioPCMBuffer) -> [Float] {
         let frameLength = Int(pcmBuffer.frameLength)
         guard frameLength > 0 else { return [] }
 
         guard let channelData = pcmBuffer.floatChannelData else { return [] }
 
         let channelCount = Int(pcmBuffer.format.channelCount)
-        guard channelCount > 0 else { return [] }
+        guard channelCount >= 2 else { return [] }
 
-        if channelCount == 1 {
-            let source = channelData[0]
-            return Array(UnsafeBufferPointer(start: source, count: frameLength))
+        let left = channelData[0]
+        let right = channelData[1]
+
+        var interleaved = [Float]()
+        interleaved.reserveCapacity(frameLength * 2)
+
+        for i in 0..<frameLength {
+            interleaved.append(left[i])
+            interleaved.append(right[i])
         }
 
-        var mono = [Float](repeating: 0, count: frameLength)
-
-        for frame in 0..<frameLength {
-            var sum: Float = 0
-            for channel in 0..<channelCount {
-                sum += channelData[channel][frame]
-            }
-            mono[frame] = sum / Float(channelCount)
-        }
-
-        return mono
+        return interleaved
     }
 }
 
