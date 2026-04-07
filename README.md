@@ -16,15 +16,19 @@ After you have installed Quicksilver, please read the following instructions on 
 Quicksilver directly analyzes the audio that comes from your computer. All you need to do is play music as you would normally, select the app that is playing the music in the Quicksilver application window, then click the "Analyze" button. After clicking "Analyze", please allow the music to play for a full 30 seconds to avoid incomplete results. Please refer to the following screenshots for examples.
 
 <figure>
-  <img src="./assets/screenshot-1.png" alt="Analyzing audio">
+  <img src="./assets/screenshot-1.png" alt="Selecting audio source">
   <figcaption>Analyzing audio</figcaption>
 </figure>
 <figure>
-  <img src="./assets/screenshot-2.png" alt="AI detected">
+  <img src="./assets/screenshot-2.png" alt="Analyzing audio">
+  <figcaption>Analyzing audio</figcaption>
+</figure>
+<figure>
+  <img src="./assets/screenshot-3.png" alt="AI detected">
   <figcaption>AI detected</figcaption>
 </figure>
 <figure>
-  <img src="./assets/screenshot-3.png" alt="AI not detected">
+  <img src="./assets/screenshot-4.png" alt="AI not detected">
   <figcaption>AI not detected</figcaption>
 </figure>
 
