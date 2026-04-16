@@ -94,6 +94,7 @@ private struct HoverUnderlineLink: View {
 
 struct AnalyzerView: View {
     @ObservedObject var viewModel: AnalyzerViewModel
+    let checkForUpdates: () -> Void
 
     private let pageBackgroundTop = Color(red: 247/255, green: 244/255, blue: 234/255)
     private let pageBackgroundBottom = Color.white

@@ -4,5 +4,17 @@
 <dict>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>Quicksilver captures system audio so it can analyze currently playing audio.</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>100</string>
+	<key>SUFeedURL</key>
+	<string>https://example.com/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>0YfxpOxt2FLwShS+v4lvf2h7W5I2HKaVXw5GroQSO04=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
 </dict>
 </plist>

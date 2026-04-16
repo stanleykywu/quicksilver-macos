@@ -6,6 +6,32 @@
 //
 
 import SwiftUI
+import Sparkle
+import Combine
+
+final class CheckForUpdatesViewModel: ObservableObject {
+    @Published var canCheckForUpdates = false
+
+    init(updater: SPUUpdater) {
+        updater.publisher(for: \.canCheckForUpdates)
+            .assign(to: &$canCheckForUpdates)
+    }
+}
+
+struct CheckForUpdatesView: View {
+    @ObservedObject private var checkForUpdatesViewModel: CheckForUpdatesViewModel
+    private let updater: SPUUpdater
+
+    init(updater: SPUUpdater) {
+        self.updater = updater
+        self.checkForUpdatesViewModel = CheckForUpdatesViewModel(updater: updater)
+    }
+
+    var body: some View {
+        Button("Check for Updates…", action: updater.checkForUpdates)
+            .disabled(!checkForUpdatesViewModel.canCheckForUpdates)
+    }
+}
 
 @main
 struct QuicksilverApp: App {
@@ -13,14 +39,39 @@ struct QuicksilverApp: App {
         captureService: SystemAudioCaptureService()
     )
 
+    private let updaterController: SPUStandardUpdaterController
+
+    init() {
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+    }
+
     var body: some Scene {
         WindowGroup("Quicksilver") {
-            MainWindowRoot(viewModel: viewModel)
+            MainWindowRoot(
+                viewModel: viewModel,
+                checkForUpdates: {
+                    updaterController.updater.checkForUpdates()
+                }
+            )
         }
         .windowResizability(.contentSize)
+        .commands {
+            CommandGroup(after: .appInfo) {
+                CheckForUpdatesView(updater: updaterController.updater)
+            }
+        }
 
         MenuBarExtra {
-            MenuBarRoot(viewModel: viewModel)
+            MenuBarRoot(
+                viewModel: viewModel,
+                checkForUpdates: {
+                    updaterController.updater.checkForUpdates()
+                }
+            )
         } label: {
             Image("MenuBarIcon")
                 .renderingMode(.template)
@@ -33,18 +84,26 @@ struct QuicksilverApp: App {
 // we re-use the same state both in the app and the menubar version
 private struct MainWindowRoot: View {
     @ObservedObject var viewModel: AnalyzerViewModel
+    let checkForUpdates: () -> Void
 
     var body: some View {
-        AnalyzerView(viewModel: viewModel)
-            .frame(width: 320, height: 420)
+        AnalyzerView(
+            viewModel: viewModel,
+            checkForUpdates: checkForUpdates
+        )
+        .frame(width: 320, height: 420)
     }
 }
 
 private struct MenuBarRoot: View {
     @ObservedObject var viewModel: AnalyzerViewModel
+    let checkForUpdates: () -> Void
 
     var body: some View {
-        AnalyzerView(viewModel: viewModel)
-            .frame(width: 320, height: 420)
+        AnalyzerView(
+            viewModel: viewModel,
+            checkForUpdates: checkForUpdates
+        )
+        .frame(width: 320, height: 420)
     }
 }
