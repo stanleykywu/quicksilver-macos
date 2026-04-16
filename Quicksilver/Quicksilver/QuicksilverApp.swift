@@ -42,11 +42,17 @@ struct QuicksilverApp: App {
     private let updaterController: SPUStandardUpdaterController
 
     init() {
-        updaterController = SPUStandardUpdaterController(
+        let controller = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
+        
+        self.updaterController = controller
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                controller.checkForUpdates(nil)
+            }
     }
 
     var body: some Scene {
