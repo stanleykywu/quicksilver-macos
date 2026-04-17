@@ -33,11 +33,17 @@ struct CheckForUpdatesView: View {
     }
 }
 
+private var appDisplayTitle: String {
+    let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+    return "Quicksilver \(version)"
+}
+
 @main
 struct QuicksilverApp: App {
     @StateObject private var viewModel = AnalyzerViewModel(
         captureService: SystemAudioCaptureService()
     )
+    @StateObject private var updatesViewModel: CheckForUpdatesViewModel
 
     private let updaterController: SPUStandardUpdaterController
 
@@ -49,19 +55,19 @@ struct QuicksilverApp: App {
         )
         
         self.updaterController = controller
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                controller.checkForUpdates(nil)
-            }
+        _updatesViewModel = StateObject(
+                wrappedValue: CheckForUpdatesViewModel(updater: controller.updater)
+            )
     }
 
     var body: some Scene {
-        WindowGroup("Quicksilver") {
+        WindowGroup(appDisplayTitle) {
             MainWindowRoot(
                 viewModel: viewModel,
                 checkForUpdates: {
                     updaterController.updater.checkForUpdates()
-                }
+                },
+                canCheckForUpdates: updatesViewModel.canCheckForUpdates
             )
         }
         .windowResizability(.contentSize)
@@ -76,7 +82,8 @@ struct QuicksilverApp: App {
                 viewModel: viewModel,
                 checkForUpdates: {
                     updaterController.updater.checkForUpdates()
-                }
+                },
+                canCheckForUpdates: updatesViewModel.canCheckForUpdates
             )
         } label: {
             Image("MenuBarIcon")
@@ -91,25 +98,29 @@ struct QuicksilverApp: App {
 private struct MainWindowRoot: View {
     @ObservedObject var viewModel: AnalyzerViewModel
     let checkForUpdates: () -> Void
+    let canCheckForUpdates: Bool
 
     var body: some View {
         AnalyzerView(
             viewModel: viewModel,
-            checkForUpdates: checkForUpdates
+            checkForUpdates: checkForUpdates,
+            canCheckForUpdates: canCheckForUpdates
         )
-        .frame(width: 320, height: 420)
+        .frame(width: 320, height: 450)
     }
 }
 
 private struct MenuBarRoot: View {
     @ObservedObject var viewModel: AnalyzerViewModel
     let checkForUpdates: () -> Void
+    let canCheckForUpdates: Bool
 
     var body: some View {
         AnalyzerView(
             viewModel: viewModel,
-            checkForUpdates: checkForUpdates
+            checkForUpdates: checkForUpdates,
+            canCheckForUpdates: canCheckForUpdates
         )
-        .frame(width: 320, height: 420)
+        .frame(width: 320, height: 450)
     }
 }

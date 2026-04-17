@@ -95,6 +95,7 @@ private struct HoverUnderlineLink: View {
 struct AnalyzerView: View {
     @ObservedObject var viewModel: AnalyzerViewModel
     let checkForUpdates: () -> Void
+    let canCheckForUpdates: Bool
 
     private let pageBackgroundTop = Color(red: 247/255, green: 244/255, blue: 234/255)
     private let pageBackgroundBottom = Color.white
@@ -272,7 +273,7 @@ struct AnalyzerView: View {
             }
             .padding(16)
 
-            HStack {
+            HStack(spacing: 12) {
                 Button {
                     viewModel.quitApp()
                 } label: {
@@ -287,6 +288,23 @@ struct AnalyzerView: View {
                 }
                 .buttonStyle(.plain)
                 .contextCursorOnHover(enabled: true)
+                
+                Button {
+                    checkForUpdates()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 13, weight: .semibold))
+
+                        Text("Check for Updates")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundStyle(mutedTextColor)
+                }
+                .buttonStyle(.plain)
+                .disabled(!canCheckForUpdates)
+                .contextCursorOnHover(enabled: canCheckForUpdates)
+                .opacity(canCheckForUpdates ? 1 : 0.65)
 
                 Spacer()
 
