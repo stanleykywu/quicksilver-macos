@@ -79,7 +79,11 @@ private struct HoverUnderlineLink: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(color)
                 .underline(isHovering)
+                .multilineTextAlignment(.trailing)
         }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .contentShape(Rectangle())
         .contextCursorOnHover(enabled: true)
         .onContinuousHover { phase in
             switch phase {
