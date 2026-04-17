@@ -309,8 +309,8 @@ struct AnalyzerView: View {
                 Spacer()
 
                 HoverUnderlineLink(
-                    title: "placeholder link",
-                    destination: URL(string: "https://example.com")!,
+                    title: "Brought to you by ETCH Lab",
+                    destination: URL(string: "http://etch-humanity.org/etch-lab")!,
                     color: mutedTextColor
                 )
             }
