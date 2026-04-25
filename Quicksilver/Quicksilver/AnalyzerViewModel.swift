@@ -62,24 +62,31 @@ final class AnalyzerViewModel: ObservableObject {
         if case .processing = state { return true }
         return false
     }
-
+    
     func loadSources() {
         Task { @MainActor in
-            do {
-                let sources = try await captureService.availableAudioSources()
-                self.availableSources = sources
+            await self.reloadSources()
+        }
+    }
 
-                if let selectedSource,
-                   sources.contains(selectedSource) == false {
-                    self.selectedSource = nil
-                }
+    @discardableResult
+    func reloadSources() async -> [AudioSource] {
+        do {
+            let sources = try await captureService.availableAudioSources()
+            self.availableSources = sources
 
-                self.sourceWarning = nil
-            } catch {
-                self.availableSources = []
+            if let selectedSource,
+               sources.contains(selectedSource) == false {
                 self.selectedSource = nil
-                self.sourceWarning = error.localizedDescription
             }
+
+            self.sourceWarning = nil
+            return sources
+        } catch {
+            self.availableSources = []
+            self.selectedSource = nil
+            self.sourceWarning = error.localizedDescription
+            return []
         }
     }
 

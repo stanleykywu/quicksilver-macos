@@ -96,6 +96,136 @@ private struct HoverUnderlineLink: View {
     }
 }
 
+private final class RefreshingPopUpButton: NSPopUpButton {
+    var refreshBeforeOpening: (() async -> Void)?
+
+    override func mouseDown(with event: NSEvent) {
+        Task { @MainActor in
+            await refreshBeforeOpening?()
+            super.mouseDown(with: event)
+        }
+    }
+}
+
+private struct RefreshingSourcePicker: NSViewRepresentable {
+    @Binding var selectedSource: AudioSource?
+
+    let sources: [AudioSource]
+    let isEnabled: Bool
+    let reloadSources: () async -> [AudioSource]
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    func makeNSView(context: Context) -> NSPopUpButton {
+        let button = RefreshingPopUpButton(frame: .zero, pullsDown: false)
+        button.refreshBeforeOpening = {
+            let freshSources = await context.coordinator.parent.reloadSources()
+
+            context.coordinator.parent.rebuildMenu(
+                for: button,
+                sources: freshSources,
+                selectedSource: context.coordinator.parent.selectedSource
+            )
+        }
+
+        let textColor = NSColor(
+            calibratedRed: 82/255,
+            green: 96/255,
+            blue: 109/255,
+            alpha: 1
+        )
+
+        button.contentTintColor = textColor
+        button.appearance = NSAppearance(named: .aqua)
+        button.menu?.appearance = NSApp.effectiveAppearance
+
+        button.target = context.coordinator
+        button.action = #selector(Coordinator.selectionChanged(_:))
+        button.menu?.delegate = context.coordinator
+
+        context.coordinator.button = button
+
+        return button
+    }
+
+    func updateNSView(_ button: NSPopUpButton, context: Context) {
+        context.coordinator.parent = self
+        context.coordinator.button = button
+        
+        button.contentTintColor = NSColor(
+            calibratedRed: 82/255,
+            green: 96/255,
+            blue: 109/255,
+            alpha: 1
+        )
+        button.appearance = NSAppearance(named: .aqua)
+        button.menu?.appearance = NSApp.effectiveAppearance
+
+        button.isEnabled = isEnabled
+        if button.numberOfItems == 0 {
+            rebuildMenu(for: button, sources: sources, selectedSource: selectedSource)
+        }
+    }
+
+    private func rebuildMenu(
+        for button: NSPopUpButton,
+        sources: [AudioSource],
+        selectedSource: AudioSource?
+    ) {
+        button.removeAllItems()
+
+        let placeholder = NSMenuItem(title: "Select an app", action: nil, keyEquivalent: "")
+        placeholder.representedObject = nil
+        placeholder.title = "Select an app"
+
+        button.menu?.addItem(placeholder)
+        button.menu?.addItem(.separator())
+
+        for source in sources {
+            let item = NSMenuItem(title: source.appName, action: nil, keyEquivalent: "")
+            item.representedObject = source
+            item.title = source.appName
+
+            if let icon = appIcon(for: source) {
+                icon.size = NSSize(width: 16, height: 16)
+                item.image = icon
+            }
+
+            button.menu?.addItem(item)
+        }
+
+        if let selectedSource,
+           let index = sources.firstIndex(of: selectedSource) {
+            button.selectItem(at: index + 2)
+        } else {
+            button.selectItem(at: 0)
+        }
+
+        button.menu?.delegate = button.menu?.delegate
+    }
+
+    final class Coordinator: NSObject, NSMenuDelegate {
+        var parent: RefreshingSourcePicker
+        weak var button: NSPopUpButton?
+        private var refreshTask: Task<Void, Never>?
+
+        init(_ parent: RefreshingSourcePicker) {
+            self.parent = parent
+        }
+
+        @objc func selectionChanged(_ sender: NSPopUpButton) {
+            guard let source = sender.selectedItem?.representedObject as? AudioSource else {
+                parent.selectedSource = nil
+                return
+            }
+
+            parent.selectedSource = source
+        }
+    }
+}
+
 struct AnalyzerView: View {
     @ObservedObject var viewModel: AnalyzerViewModel
     let checkForUpdates: () -> Void
@@ -133,72 +263,16 @@ struct AnalyzerView: View {
                         Spacer()
                     }
 
-                    Menu {
-                        Button("Select an app") {
-                            viewModel.selectedSource = nil
+                    RefreshingSourcePicker(
+                        selectedSource: $viewModel.selectedSource,
+                        sources: viewModel.availableSources,
+                        isEnabled: !viewModel.isRecording,
+                        reloadSources: {
+                            await viewModel.reloadSources()
                         }
-
-                        Divider()
-
-                        ForEach(viewModel.availableSources, id: \.self) { source in
-                            Button {
-                                viewModel.selectedSource = source
-                            } label: {
-                                HStack(spacing: 8) {
-                                    if let icon = appIcon(for: source) {
-                                        Image(nsImage: icon)
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 16, height: 16)
-                                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                                    }
-
-                                    Text(source.appName)
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            if let icon = viewModel.selectedSource.flatMap({ appIcon(for: $0) }) {
-                                Image(nsImage: icon)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 16, height: 16)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                            }
-
-                            Text(viewModel.selectedSource?.appName ?? "Select an app")
-                                .foregroundStyle(
-                                    viewModel.selectedSource == nil
-                                    ? mutedTextColor
-                                    : bodyTextColor
-                                )
-
-                            Spacer()
-
-                            Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(mutedTextColor)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(emptyBackgroundColor)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                    .menuStyle(.borderlessButton)
-                    .buttonStyle(.plain)
-                    .menuIndicator(.hidden)
+                    )
+                    .frame(maxWidth: .infinity)
                     .contextCursorOnHover(enabled: !viewModel.isRecording)
-                    .allowsHitTesting(!viewModel.isRecording)
-                    .overlay {
-                        if viewModel.isRecording {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.clear)
-                                .contentShape(RoundedRectangle(cornerRadius: 10))
-                                .contextCursorOnHover(enabled: false)
-                        }
-                    }
                 }
 
                 if let warning = viewModel.sourceWarning {
